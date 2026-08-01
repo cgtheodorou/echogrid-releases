@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echogrid.dev/schema/handshake.json",
+  "title": "Echo Grid — handshake messages",
+  "oneOf": [
+    { "$ref": "#/$defs/hello" },
+    { "$ref": "#/$defs/challenge" },
+    { "$ref": "#/$defs/auth" },
+    { "$ref": "#/$defs/welcome" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "hello": {
+      "description": "Client -> server: first frame after WS open.",
+      "type": "object",
+      "required": ["type", "clientVersion", "pubkey"],
+      "properties": {
+        "type":          { "const": "hello" },
+        "clientVersion": { "type": "string" },
+        "pubkey":        { "$ref": "common.json#/$defs/base64" }
+      }
+    },
+    "challenge": {
+      "description": "Server -> client: nonce the client must sign.",
+      "type": "object",
+      "required": ["type", "nonce"],
+      "properties": {
+        "type":  { "const": "challenge" },
+        "nonce": { "$ref": "common.json#/$defs/base64" }
+      }
+    },
+    "auth": {
+      "description": "Client -> server: signature over nonce + nickname.",
+      "type": "object",
+      "required": ["type", "signature", "nickname"],
+      "properties": {
+        "type":           { "const": "auth" },
+        "signature":      { "$ref": "common.json#/$defs/base64" },
+        "nickname":       { "$ref": "common.json#/$defs/nickname" },
+        "serverPassword": { "type": ["string", "null"] }
+      }
+    },
+    "welcome": {
+      "description": "Server -> client: handshake succeeded, here is the world.",
+      "type": "object",
+      "required": ["type", "identityId", "serverInfo", "channels", "members"],
+      "properties": {
+        "type":       { "const": "welcome" },
+        "identityId": { "type": "integer", "minimum": 1 },
+        "serverInfo": {
+          "type": "object",
+          "required": ["name", "serverVersion"],
+          "properties": {
+            "name":          { "type": "string" },
+            "description":   { "type": ["string", "null"] },
+            "serverVersion": { "type": "string" }
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": { "$ref": "common.json#/$defs/channelInfo" }
+        },
+        "members": {
+          "type": "array",
+          "items": { "$ref": "common.json#/$defs/memberInfo" }
+        }
+      }
+    },
+    "error": {
+      "description": "Server -> client: error (may be terminal).",
+      "type": "object",
+      "required": ["type", "code", "message"],
+      "properties": {
+        "type":    { "const": "error" },
+        "code": {
+          "enum": [
+            "bad_hello",
+            "bad_signature",
+            "bad_password",
+            "nickname_taken",
+            "banned",
+            "rate_limited",
+            "internal"
+          ]
+        },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

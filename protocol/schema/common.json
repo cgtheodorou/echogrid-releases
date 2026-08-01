@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echogrid.dev/schema/common.json",
+  "title": "Echo Grid — shared types",
+  "$defs": {
+    "base64": {
+      "type": "string",
+      "description": "Base64-encoded bytes.",
+      "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp with timezone (server always emits UTC)."
+    },
+    "nickname": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "channelKind": {
+      "enum": ["text", "voice"]
+    },
+    "presenceState": {
+      "enum": ["online", "idle", "offline"]
+    },
+    "messageAuthor": {
+      "type": "object",
+      "required": ["identityId", "nickname"],
+      "properties": {
+        "identityId": { "type": "integer", "minimum": 1 },
+        "nickname":   { "$ref": "#/$defs/nickname" }
+      }
+    },
+    "attachmentRef": {
+      "type": "object",
+      "required": ["id", "filename", "mime", "size", "url"],
+      "properties": {
+        "id":       { "type": "integer", "minimum": 1 },
+        "filename": { "type": "string", "maxLength": 255 },
+        "mime":     { "type": "string" },
+        "size":     { "type": "integer", "minimum": 0 },
+        "url":      { "type": "string", "format": "uri-reference" }
+      }
+    },
+    "embedRef": {
+      "type": "object",
+      "description": "An embed attached to a message (GIF, link preview, etc.).",
+      "required": ["type", "url"],
+      "properties": {
+        "type":         { "type": "string", "description": "Embed kind: gif, link, video, etc." },
+        "url":          { "type": "string", "format": "uri" },
+        "thumbnailUrl": { "type": ["string", "null"], "format": "uri" },
+        "width":        { "type": ["integer", "null"], "minimum": 1 },
+        "height":       { "type": ["integer", "null"], "minimum": 1 },
+        "title":        { "type": ["string", "null"], "maxLength": 256 },
+        "provider":     { "type": ["string", "null"], "maxLength": 64 }
+      }
+    },
+    "channelInfo": {
+      "type": "object",
+      "required": ["id", "kind", "name", "position"],
+      "properties": {
+        "id":        { "type": "integer", "minimum": 1 },
+        "kind":      { "$ref": "#/$defs/channelKind" },
+        "name":      { "type": "string" },
+        "topic":     { "type": ["string", "null"] },
+        "position":  { "type": "integer" },
+        "isPrivate": { "type": "boolean", "description": "True if the channel restricts access to a curated member list (text/voice only; DMs use their own gating)." },
+        "isMember":  { "type": "boolean", "description": "True if the receiving identity is in the channel's member list. Meaningful only when isPrivate is true." }
+      }
+    },
+    "memberInfo": {
+      "type": "object",
+      "required": ["identityId", "nickname", "state"],
+      "properties": {
+        "identityId": { "type": "integer", "minimum": 1 },
+        "nickname":   { "$ref": "#/$defs/nickname" },
+        "state":      { "$ref": "#/$defs/presenceState" }
+      }
+    }
+  }
+}

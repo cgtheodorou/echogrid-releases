@@ -1,0 +1,42 @@
+# LiveKit sidecar config — mounted into livekit-server at /etc/livekit.yaml.
+# Runs in `network_mode: host` next to echogrid + caddy.
+#
+# Traffic plane summary:
+#   * Signaling (WS, TLS-terminated by Caddy):  :7880  ← caddy /livekit/*
+#   * RTC over TCP fallback:                    :7881  (open on firewall)
+#   * RTC over UDP (primary media):             50000-50100/udp
+#   * Webhook → echogrid:                       http://127.0.0.1:5162/livekit/webhook
+#
+# Regenerate keys with: `livekit-server generate-keys` (or any 32-byte secret).
+# Both values must match the EchoGrid__LiveKit__Api* env in docker-compose.yml.
+
+port: 7880
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50100
+  # Advertise the host's public IP; LiveKit cannot auto-detect it under
+  # network_mode: host because the container shares the host namespace.
+  # Supplied by the deploy environment so this file carries no host-specific
+  # values and can be published as a template.
+  use_external_ip: false
+  node_ip: ${LIVEKIT_NODE_IP}
+
+keys:
+  # EchoGrid server's API key → secret. Both values live in the repo ONLY as
+  # placeholders; real values come from env via docker-compose substitution or
+  # by writing a secrets-managed livekit.yaml at deploy time.
+  ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+
+webhook:
+  # Echoes participant_joined / track_unpublished / room_finished back to
+  # echogrid so it can clear the one-sharer-per-channel lock if the publisher
+  # drops mid-share.
+  api_key: ${LIVEKIT_API_KEY}
+  urls:
+    - http://127.0.0.1:5162/livekit/webhook
+
+logging:
+  level: info
+  pion_level: error

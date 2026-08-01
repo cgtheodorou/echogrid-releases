@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echogrid.dev/schema/voice.json",
+  "title": "Echo Grid — voice + screen share (LiveKit token exchange + presence)",
+  "description": "Voice and screen share media never flow through the EchoGrid server. Media goes directly between the client's livekit-client SDK and the LiveKit sidecar SFU. The messages in this schema are the presence + token-exchange handshake that rides the main /ws WebSocket.",
+  "oneOf": [
+    { "$ref": "#/$defs/voiceJoin" },
+    { "$ref": "#/$defs/voiceLeave" },
+    { "$ref": "#/$defs/voicePeerJoined" },
+    { "$ref": "#/$defs/voicePeerLeft" },
+    { "$ref": "#/$defs/voiceSpeaking" },
+    { "$ref": "#/$defs/voiceState" },
+    { "$ref": "#/$defs/voiceRequestToken" },
+    { "$ref": "#/$defs/voiceToken" },
+    { "$ref": "#/$defs/voiceReplaced" },
+    { "$ref": "#/$defs/screenRequestToken" },
+    { "$ref": "#/$defs/screenPermissionGranted" },
+    { "$ref": "#/$defs/screenStopRequest" },
+    { "$ref": "#/$defs/screenStarted" },
+    { "$ref": "#/$defs/screenStopped" }
+  ],
+  "$defs": {
+    "voiceJoin": {
+      "description": "Client -> server: join presence for this voice channel. Does not by itself connect to LiveKit — the client follows up with voice.request_token.",
+      "type": "object",
+      "required": ["type", "channelId"],
+      "properties": {
+        "type":      { "const": "voice.join" },
+        "channelId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "voiceLeave": {
+      "description": "Client -> server: leave current voice channel. Client also disconnects from the LiveKit Room.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "voice.leave" }
+      }
+    },
+    "voicePeerJoined": {
+      "description": "Server -> everyone-in-channel: a peer joined the voice channel.",
+      "type": "object",
+      "required": ["type", "channelId", "identityId", "nickname"],
+      "properties": {
+        "type":       { "const": "voice.peer_joined" },
+        "channelId":  { "type": "integer", "minimum": 1 },
+        "identityId": { "type": "integer", "minimum": 1 },
+        "nickname":   { "$ref": "common.json#/$defs/nickname" }
+      }
+    },
+    "voicePeerLeft": {
+      "description": "Server -> everyone-in-channel: a peer left.",
+      "type": "object",
+      "required": ["type", "channelId", "identityId"],
+      "properties": {
+        "type":       { "const": "voice.peer_left" },
+        "channelId":  { "type": "integer", "minimum": 1 },
+        "identityId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "voiceSpeaking": {
+      "description": "Server -> everyone-in-channel: speaking-state echo driven by LiveKit ActiveSpeakersChanged on the sharer's client.",
+      "type": "object",
+      "required": ["type", "identityId", "speaking"],
+      "properties": {
+        "type":       { "const": "voice.speaking" },
+        "identityId": { "type": "integer", "minimum": 1 },
+        "speaking":   { "type": "boolean" }
+      }
+    },
+    "voiceState": {
+      "description": "Server -> client: full snapshot of current voice-channel membership after (re)join. Fields mirror EchoGrid.Protocol/VoiceMessages.cs.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "voice.state" }
+      }
+    },
+    "voiceRequestToken": {
+      "description": "Client -> server: mint me a LiveKit JWT for this voice channel's Room.",
+      "type": "object",
+      "required": ["type", "channelId"],
+      "properties": {
+        "type":      { "const": "voice.request_token" },
+        "channelId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "voiceToken": {
+      "description": "Server -> client: here is the LiveKit JWT + URL. role is 'publisher' when the caller has Speak permission, otherwise 'subscriber'. The same Room is used for screen share — no second token is ever minted.",
+      "type": "object",
+      "required": ["type", "url", "token", "roomName", "role"],
+      "properties": {
+        "type":     { "const": "voice.token" },
+        "url":      { "type": "string", "description": "wss://…/livekit (EchoGrid:LiveKit:PublicUrl)" },
+        "token":    { "type": "string", "description": "HS256 JWT, TTL ~10 minutes" },
+        "roomName": { "type": "string", "description": "channel-{id}" },
+        "role":     { "enum": ["publisher", "subscriber"] }
+      }
+    },
+    "voiceReplaced": {
+      "description": "Server -> displaced-session unicast: this session's voice attendance was taken over by another session of the same identity on a different device (voice is device-exclusive per identity; chat, DMs, presence, and typing remain multi-session). The receiving client disconnects from LiveKit and clears local voice state but keeps its chat WebSocket open. reason is a short machine-readable code — currently 'another_device'.",
+      "type": "object",
+      "required": ["type", "channelId", "reason"],
+      "properties": {
+        "type":      { "const": "voice.replaced" },
+        "channelId": { "type": "integer", "minimum": 1 },
+        "reason":    { "type": "string", "description": "machine-readable code: 'another_device'" }
+      }
+    },
+    "screenRequestToken": {
+      "description": "Client -> server: grant me screen publish permission on my existing voice Room. Caller must already be in the voice channel. Server verifies StartScreenShare, claims the one-sharer-per-channel slot, and calls LiveKit UpdateParticipant to add SCREEN_SHARE / SCREEN_SHARE_AUDIO to canPublishSources.",
+      "type": "object",
+      "required": ["type", "channelId"],
+      "properties": {
+        "type":      { "const": "screen.request_token" },
+        "channelId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "screenPermissionGranted": {
+      "description": "Server -> caller: publish permission has been flipped on your existing LiveKit participant record. Open the OS picker and publish.",
+      "type": "object",
+      "required": ["type", "channelId"],
+      "properties": {
+        "type":      { "const": "screen.permission_granted" },
+        "channelId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "screenStopRequest": {
+      "description": "Client -> server: I am stopping my screen share. Server revokes the publish permission via UpdateParticipant and releases the slot.",
+      "type": "object",
+      "required": ["type", "channelId"],
+      "properties": {
+        "type":      { "const": "screen.stop_request" },
+        "channelId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "screenStarted": {
+      "description": "Server -> everyone-in-channel: someone started sharing their screen on this voice channel.",
+      "type": "object",
+      "required": ["type", "channelId", "identityId"],
+      "properties": {
+        "type":       { "const": "screen.started" },
+        "channelId":  { "type": "integer", "minimum": 1 },
+        "identityId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "screenStopped": {
+      "description": "Server -> everyone-in-channel: the sharer stopped (explicit stop_request, leave, or LiveKit webhook-driven release).",
+      "type": "object",
+      "required": ["type", "channelId", "identityId"],
+      "properties": {
+        "type":       { "const": "screen.stopped" },
+        "channelId":  { "type": "integer", "minimum": 1 },
+        "identityId": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

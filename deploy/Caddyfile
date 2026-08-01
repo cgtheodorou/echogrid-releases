@@ -1,0 +1,37 @@
+# Caddy reverse-proxy for Echo Grid + LiveKit sidecar.
+#
+# Terminates TLS on $ECHOGRID_DOMAIN and routes:
+#   * /livekit/* → livekit-server on :7880   (path stripped)
+#   * everything else → echogrid on :5162
+#
+# LiveKit's WebSocket signaling endpoint is at the root ("/rtc"), so we use
+# `handle_path` to strip the /livekit prefix before forwarding.
+# `header_up Host {host}` keeps the original Host header so LiveKit's
+# subprotocol negotiation works through the proxy.
+
+# Site address comes from the deploy environment so this file is publishable
+# as-is. Caddy expands {$VAR} at config-load time. Set ECHOGRID_DOMAIN in the
+# Portainer stack env (or the compose .env) to your own hostname.
+#
+# If ECHOGRID_DOMAIN is unset, Caddy dies with a misleading
+#   "unrecognized global option: handle_path"
+# because an empty site address makes it parse this block as global options.
+# That error means the variable is missing, not that this file is wrong.
+#
+# Deliberately no `{$ECHOGRID_DOMAIN:something}` default: a fallback would
+# start Caddy on the wrong hostname and quietly fail to get a certificate,
+# which is harder to diagnose than refusing to start.
+{$ECHOGRID_DOMAIN} {
+    handle_path /livekit/* {
+        reverse_proxy 127.0.0.1:7880 {
+            header_up Host {host}
+            transport http {
+                versions 1.1
+            }
+        }
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:5162
+    }
+}

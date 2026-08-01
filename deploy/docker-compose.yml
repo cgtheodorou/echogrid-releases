@@ -1,0 +1,97 @@
+services:
+  echogrid:
+    image: ghcr.io/cgtheodorou/echogrid-server:latest
+    container_name: echogrid-server
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - echogrid-data:/data
+      # --- Firebase Cloud Messaging (mobile push) ---
+      # Mount the Firebase service-account JSON from the host into the
+      # container read-only so the FcmAdapter can mint OAuth2 bearer
+      # tokens. `${FCM_SA_PATH:-/dev/null}` makes this a no-op mount when
+      # FCM isn't configured (mounting /dev/null onto the secrets path is
+      # a cheap "nothing to see here" sentinel — the adapter treats the
+      # path as non-existent and falls through). To enable push:
+      #   1. Put the service-account JSON on the host, e.g.
+      #      /srv/echogrid/fcm-service-account.json (chmod 600, root only).
+      #   2. Set `FCM_SA_PATH=/srv/echogrid/fcm-service-account.json` in
+      #      the host env (e.g. Portainer's stack env vars, or .env).
+      - ${FCM_SA_PATH:-/dev/null}:/secrets/fcm-service-account.json:ro
+      # --- Apple Push Notification service (mobile push) ---
+      # Same pattern as FCM above: bind-mount the Apple-issued APNs
+      # `.p8` auth key into the container. The /dev/null sentinel makes
+      # APNS configured-or-not a single config toggle — set APNS_P8_PATH
+      # to enable, leave it unset (or blank) to disable.
+      # To enable:
+      #   1. Put the .p8 on the host, e.g.
+      #      /srv/echogrid/apns-auth-key.p8 (chmod 600, root only).
+      #   2. Set `APNS_P8_PATH=/srv/echogrid/apns-auth-key.p8` in the
+      #      host env (Portainer stack env, or .env).
+      # Preferred over the legacy inline-PEM env var because Portainer's
+      # env-var UI inconsistently preserves multi-line content; a single
+      # corrupted newline turns the PEM into a different (valid-looking)
+      # key and surfaces only as Apple 403 InvalidProviderToken on send.
+      - ${APNS_P8_PATH:-/dev/null}:/secrets/apns-auth-key.p8:ro
+    environment:
+      # Server identity
+      - EchoGrid__ServerName=Echo Grid
+
+      # --- Klipy GIF API ---
+      # Free API key from https://klipy.com/developers
+      # Leave empty to disable the GIF picker.
+      - EchoGrid__KlipyApiKey=${KLIPY_API_KEY:-}
+
+      # --- LiveKit sidecar (voice + screen share) ---
+      # Voice and screen share both ride LiveKit. Both features turn on
+      # whenever ApiKey + ApiSecret + PublicUrl are all set. Leave any of
+      # them blank to disable without touching other config.
+      # Public wss:// URL clients connect to. Caddy rewrites /livekit/* → /* so
+      # this terminates TLS on the main domain; path is rewritten before the
+      # request reaches livekit-server on :7880.
+      - EchoGrid__LiveKit__PublicUrl=${LIVEKIT_PUBLIC_URL:-}
+      # Must match livekit.yaml's `keys:` entry (api_key: api_secret).
+      - EchoGrid__LiveKit__ApiKey=${LIVEKIT_API_KEY:-}
+      - EchoGrid__LiveKit__ApiSecret=${LIVEKIT_API_SECRET:-}
+
+      # --- Mobile push (FCM Android + APNs iOS) ---
+      # FCM: point this at the service-account JSON inside the container.
+      # The mount above places it at /secrets/fcm-service-account.json;
+      # if the FCM_SA_PATH env var is unset the mount resolves to /dev/null
+      # and the adapter sees a non-existent file → "push disabled" on startup.
+      - EchoGrid__Push__Fcm__ServiceAccountJson=/secrets/fcm-service-account.json
+      # APNs: HTTP/2 adapter signs JWTs with the bind-mounted .p8 key.
+      # `P8Key` accepts either an inline PEM (legacy) or a filesystem
+      # path; the path form is what this compose uses (see the
+      # APNS_P8_PATH volume mount above). Leave APNS_P8_PATH unset to
+      # disable APNs — the mount resolves to /dev/null and the adapter
+      # logs "push disabled" at startup.
+      - EchoGrid__Push__Apns__TeamId=${APNS_TEAM_ID:-}
+      - EchoGrid__Push__Apns__KeyId=${APNS_KEY_ID:-}
+      - EchoGrid__Push__Apns__P8Key=/secrets/apns-auth-key.p8
+      - EchoGrid__Push__Apns__BundleId=${APNS_BUNDLE_ID:-app.echogrid}
+      - EchoGrid__Push__Apns__Environment=${APNS_ENVIRONMENT:-production}
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: echogrid-livekit
+    restart: unless-stopped
+    network_mode: host
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: echogrid-caddy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  echogrid-data:
+  caddy-data:
+  caddy-config:

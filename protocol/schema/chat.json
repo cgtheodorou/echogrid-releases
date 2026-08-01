@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echogrid.dev/schema/chat.json",
+  "title": "Echo Grid — chat + presence messages",
+  "oneOf": [
+    { "$ref": "#/$defs/messageSend" },
+    { "$ref": "#/$defs/messageNew" },
+    { "$ref": "#/$defs/typingStart" },
+    { "$ref": "#/$defs/presenceUpdate" }
+  ],
+  "$defs": {
+    "messageSend": {
+      "description": "Client -> server: post a new message in a channel.",
+      "type": "object",
+      "required": ["type", "channelId", "content"],
+      "properties": {
+        "type":          { "const": "message.send" },
+        "channelId":     { "type": "integer", "minimum": 1 },
+        "content":       { "type": "string", "maxLength": 4000 },
+        "attachmentIds": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "embeds": {
+          "type": ["array", "null"],
+          "items": { "$ref": "common.json#/$defs/embedRef" },
+          "maxItems": 4
+        }
+      }
+    },
+    "messageNew": {
+      "description": "Server -> every-client-in-channel: a new message.",
+      "type": "object",
+      "required": ["type", "id", "channelId", "author", "content", "ts"],
+      "properties": {
+        "type":        { "const": "message.new" },
+        "id":          { "type": "integer", "minimum": 1 },
+        "channelId":   { "type": "integer", "minimum": 1 },
+        "author":      { "$ref": "common.json#/$defs/messageAuthor" },
+        "content":     { "type": "string" },
+        "attachments": {
+          "type": ["array", "null"],
+          "items": { "$ref": "common.json#/$defs/attachmentRef" }
+        },
+        "embeds": {
+          "type": ["array", "null"],
+          "items": { "$ref": "common.json#/$defs/embedRef" }
+        },
+        "ts": { "$ref": "common.json#/$defs/timestamp" }
+      }
+    },
+    "typingStart": {
+      "description": "Client -> server: 'I am typing in this channel'.",
+      "type": "object",
+      "required": ["type", "channelId"],
+      "properties": {
+        "type":      { "const": "typing.start" },
+        "channelId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "presenceUpdate": {
+      "description": "Server -> everyone: presence state changed for a member.",
+      "type": "object",
+      "required": ["type", "identityId", "state"],
+      "properties": {
+        "type":       { "const": "presence.update" },
+        "identityId": { "type": "integer", "minimum": 1 },
+        "state":      { "$ref": "common.json#/$defs/presenceState" }
+      }
+    }
+  }
+}
