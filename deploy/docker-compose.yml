@@ -37,6 +37,25 @@ services:
       # Server identity
       - EchoGrid__ServerName=Echo Grid
 
+      # --- Auth binding (required) ---
+      # The address your users type into the connect form, e.g. chat.example.com
+      # (include the port if it isn't 443). Clients bind their handshake and
+      # upload signatures to it, and the server checks that binding — which is
+      # what stops a hostile server relaying a signature into a session on
+      # yours. It cannot be read from the request: an attacker mounting that
+      # relay sets the Host header. The server refuses to start without it.
+      #
+      # Comma-separate if the server answers to several names, e.g.
+      # "chat.example.com, www.chat.example.com". Same idea as certificate SAN
+      # entries: any listed name verifies, an unlisted one does not.
+      #
+      # This should be the same string Caddy binds TLS to. Wiring both to
+      # ECHOGRID_DOMAIN stops them drifting apart on a future domain change.
+      - EchoGrid__PublicAddress=${PUBLIC_ADDRESS:?set PUBLIC_ADDRESS to the host clients dial}
+      # Temporarily accept pre-2.9 clients while users update. This re-opens the
+      # relay for as long as it is set — treat it as a migration window.
+      - EchoGrid__RequireBoundAuth=${REQUIRE_BOUND_AUTH:-true}
+
       # --- Klipy GIF API ---
       # Free API key from https://klipy.com/developers
       # Leave empty to disable the GIF picker.

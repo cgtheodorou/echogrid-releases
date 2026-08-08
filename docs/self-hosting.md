@@ -49,10 +49,39 @@ Config is read from environment variables, where a double underscore separates c
 
 | Variable | Default | Purpose |
 |---|---|---|
+| `EchoGrid__PublicAddress` | *(required)* | The address(es) your users type into the connect form, comma-separated |
+| `EchoGrid__RequireBoundAuth` | `true` | Accept only signatures bound to that address |
 | `EchoGrid__ServerName` | `Echo Grid` | Display name shown to clients |
 | `EchoGrid__DatabasePath` | `/data/echogrid.db` | SQLite file |
 | `EchoGrid__MediaPath` | `/data/media` | Uploaded file storage, content-addressed by SHA-256 |
 | `EchoGrid__ChangeFeedRetentionDays` | `30` | How long resume-sync change rows are kept |
+
+### `PublicAddress` and why the server won't start without it
+
+Set it to exactly what a user types into the connect form: `chat.example.com`, or `192.168.1.50:5162` on a LAN.
+No scheme, no path, and include the port only if it isn't 443.
+
+If the same server answers to more than one name, comma-separate them:
+
+```
+EchoGrid__PublicAddress=chat.example.com, www.chat.example.com
+```
+
+A signature bound to any listed name is accepted; one bound to a name you haven't listed is not.
+This is the same idea as SAN entries on a certificate - you are naming the identities your server legitimately answers to, which is why it adds nothing an attacker can use.
+Note that `example.com` and `example.com:443` are *different* entries, because a client treats a colon as "connect in plaintext" and so dials a different server.
+
+Clients sign a challenge to log in, and they bind that signature to the address they dialed.
+The server checks the binding against this value.
+Without it, a signature proves only "this key signed some bytes" and names no particular server, so a hostile server you visit could forward its challenge from *your* server, collect your answer, and replay it to log in as you.
+Because everyone reuses one identity keypair across every server they join, that is a realistic path rather than an exotic one.
+
+The value cannot be inferred from the incoming request: an attacker mounting exactly that relay controls the `Host` header they send.
+So the server has to be told its own name, and it fails to start rather than run the handshake in a mode whose security it cannot deliver.
+
+Clients older than 2.9.0 do not bind their signatures and will be rejected with a message telling the user to update.
+If you need a migration window, set `EchoGrid__RequireBoundAuth=false` to also accept the old form.
+That re-opens the relay for as long as it is set, so treat it as a window and not a setting.
 
 ## Updating
 
