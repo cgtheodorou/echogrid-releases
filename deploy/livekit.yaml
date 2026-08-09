@@ -1,4 +1,4 @@
-# LiveKit sidecar config — mounted into livekit-server at /etc/livekit.yaml.
+# LiveKit sidecar config - mounted into livekit-server at /etc/livekit.yaml.
 # Runs in `network_mode: host` next to echogrid + caddy.
 #
 # Traffic plane summary:

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://echogrid.dev/schema/common.json",
-  "title": "Echo Grid — shared types",
+  "title": "Echo Grid - shared types",
   "$defs": {
     "base64": {
       "type": "string",

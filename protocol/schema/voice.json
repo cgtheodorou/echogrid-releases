@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://echogrid.dev/schema/voice.json",
-  "title": "Echo Grid — voice + screen share (LiveKit token exchange + presence)",
+  "title": "Echo Grid - voice + screen share (LiveKit token exchange + presence)",
   "description": "Voice and screen share media never flow through the EchoGrid server. Media goes directly between the client's livekit-client SDK and the LiveKit sidecar SFU. The messages in this schema are the presence + token-exchange handshake that rides the main /ws WebSocket.",
   "oneOf": [
     { "$ref": "#/$defs/voiceJoin" },
@@ -21,7 +21,7 @@
   ],
   "$defs": {
     "voiceJoin": {
-      "description": "Client -> server: join presence for this voice channel. Does not by itself connect to LiveKit — the client follows up with voice.request_token.",
+      "description": "Client -> server: join presence for this voice channel. Does not by itself connect to LiveKit - the client follows up with voice.request_token.",
       "type": "object",
       "required": ["type", "channelId"],
       "properties": {
@@ -86,7 +86,7 @@
       }
     },
     "voiceToken": {
-      "description": "Server -> client: here is the LiveKit JWT + URL. role is 'publisher' when the caller has Speak permission, otherwise 'subscriber'. The same Room is used for screen share — no second token is ever minted.",
+      "description": "Server -> client: here is the LiveKit JWT + URL. role is 'publisher' when the caller has Speak permission, otherwise 'subscriber'. The same Room is used for screen share - no second token is ever minted.",
       "type": "object",
       "required": ["type", "url", "token", "roomName", "role"],
       "properties": {
@@ -98,7 +98,7 @@
       }
     },
     "voiceReplaced": {
-      "description": "Server -> displaced-session unicast: this session's voice attendance was taken over by another session of the same identity on a different device (voice is device-exclusive per identity; chat, DMs, presence, and typing remain multi-session). The receiving client disconnects from LiveKit and clears local voice state but keeps its chat WebSocket open. reason is a short machine-readable code — currently 'another_device'.",
+      "description": "Server -> displaced-session unicast: this session's voice attendance was taken over by another session of the same identity on a different device (voice is device-exclusive per identity; chat, DMs, presence, and typing remain multi-session). The receiving client disconnects from LiveKit and clears local voice state but keeps its chat WebSocket open. reason is a short machine-readable code - currently 'another_device'.",
       "type": "object",
       "required": ["type", "channelId", "reason"],
       "properties": {

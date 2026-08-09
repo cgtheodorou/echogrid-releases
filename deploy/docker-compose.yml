@@ -11,7 +11,7 @@ services:
       # container read-only so the FcmAdapter can mint OAuth2 bearer
       # tokens. `${FCM_SA_PATH:-/dev/null}` makes this a no-op mount when
       # FCM isn't configured (mounting /dev/null onto the secrets path is
-      # a cheap "nothing to see here" sentinel — the adapter treats the
+      # a cheap "nothing to see here" sentinel - the adapter treats the
       # path as non-existent and falls through). To enable push:
       #   1. Put the service-account JSON on the host, e.g.
       #      /srv/echogrid/fcm-service-account.json (chmod 600, root only).
@@ -21,7 +21,7 @@ services:
       # --- Apple Push Notification service (mobile push) ---
       # Same pattern as FCM above: bind-mount the Apple-issued APNs
       # `.p8` auth key into the container. The /dev/null sentinel makes
-      # APNS configured-or-not a single config toggle — set APNS_P8_PATH
+      # APNS configured-or-not a single config toggle - set APNS_P8_PATH
       # to enable, leave it unset (or blank) to disable.
       # To enable:
       #   1. Put the .p8 on the host, e.g.
@@ -40,7 +40,7 @@ services:
       # --- Auth binding (required) ---
       # The address your users type into the connect form, e.g. chat.example.com
       # (include the port if it isn't 443). Clients bind their handshake and
-      # upload signatures to it, and the server checks that binding — which is
+      # upload signatures to it, and the server checks that binding - which is
       # what stops a hostile server relaying a signature into a session on
       # yours. It cannot be read from the request: an attacker mounting that
       # relay sets the Host header. The server refuses to start without it.
@@ -53,7 +53,7 @@ services:
       # ECHOGRID_DOMAIN stops them drifting apart on a future domain change.
       - EchoGrid__PublicAddress=${PUBLIC_ADDRESS:?set PUBLIC_ADDRESS to the host clients dial}
       # Temporarily accept pre-2.9 clients while users update. This re-opens the
-      # relay for as long as it is set — treat it as a migration window.
+      # relay for as long as it is set - treat it as a migration window.
       - EchoGrid__RequireBoundAuth=${REQUIRE_BOUND_AUTH:-true}
 
       # --- Klipy GIF API ---
@@ -83,7 +83,7 @@ services:
       # `P8Key` accepts either an inline PEM (legacy) or a filesystem
       # path; the path form is what this compose uses (see the
       # APNS_P8_PATH volume mount above). Leave APNS_P8_PATH unset to
-      # disable APNs — the mount resolves to /dev/null and the adapter
+      # disable APNs - the mount resolves to /dev/null and the adapter
       # logs "push disabled" at startup.
       - EchoGrid__Push__Apns__TeamId=${APNS_TEAM_ID:-}
       - EchoGrid__Push__Apns__KeyId=${APNS_KEY_ID:-}
