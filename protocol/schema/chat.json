@@ -22,6 +22,7 @@
           "items": { "type": "integer", "minimum": 1 }
         },
         "embeds": {
+          "description": "Each url may appear at most once; a repeated url is refused with error { code: 'bad_request' }, because clients key a message's embeds by url.",
           "type": ["array", "null"],
           "items": { "$ref": "common.json#/$defs/embedRef" },
           "maxItems": 4
@@ -43,6 +44,7 @@
           "items": { "$ref": "common.json#/$defs/attachmentRef" }
         },
         "embeds": {
+          "description": "Unique by url - the server drops a repeat on every read path, so clients may key on it.",
           "type": ["array", "null"],
           "items": { "$ref": "common.json#/$defs/embedRef" }
         },

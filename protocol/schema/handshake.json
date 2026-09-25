@@ -83,7 +83,12 @@
             "internal"
           ]
         },
-        "message": { "type": "string" }
+        "message": { "type": "string" },
+        "retryAfterMs": { "type": ["integer", "null"] },
+        "inReplyTo": {
+          "type": ["string", "null"],
+          "description": "The `type` of the inbound frame whose handling produced this error, so a client waiting on one request can tell its own refusal from another handler's. Null for errors that answer no frame (handshake, rate limiting) and from servers older than the field. Match on this, never on `message`, which is human-readable and may change."
+        }
       }
     }
   }

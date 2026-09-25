@@ -77,7 +77,7 @@
       }
     },
     "voiceRequestToken": {
-      "description": "Client -> server: mint me a LiveKit JWT for this voice channel's Room.",
+      "description": "Client -> server: mint me a LiveKit JWT for this voice channel's Room. Only answered for the session holding this channel's voice presence entry - send voice.join (or voice.resume) for the same channel first, on the same socket; otherwise the reply is error { code: 'forbidden' }. A caller who cannot see the channel (ViewChannel) gets 'not_found'.",
       "type": "object",
       "required": ["type", "channelId"],
       "properties": {
