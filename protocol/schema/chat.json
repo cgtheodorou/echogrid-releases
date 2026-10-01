@@ -6,7 +6,10 @@
     { "$ref": "#/$defs/messageSend" },
     { "$ref": "#/$defs/messageNew" },
     { "$ref": "#/$defs/typingStart" },
-    { "$ref": "#/$defs/presenceUpdate" }
+    { "$ref": "#/$defs/presenceUpdate" },
+    { "$ref": "#/$defs/readAck" },
+    { "$ref": "#/$defs/readMarkUnread" },
+    { "$ref": "#/$defs/readUpdated" }
   ],
   "$defs": {
     "messageSend": {
@@ -68,6 +71,42 @@
         "type":       { "const": "presence.update" },
         "identityId": { "type": "integer", "minimum": 1 },
         "state":      { "$ref": "common.json#/$defs/presenceState" }
+      }
+    },
+    "readAck": {
+      "description": "Client -> server: I have read this channel up to this message. Forward-only - an id behind the stored pointer changes nothing.",
+      "type": "object",
+      "required": ["type", "channelId", "messageId"],
+      "properties": {
+        "type":      { "const": "read.ack" },
+        "channelId": { "type": "integer", "minimum": 1 },
+        "messageId": {
+          "description": "The newest message id the client holds and has shown. Null means 'through the newest message', for mark-all-read, where the client may not hold it.",
+          "type": ["integer", "null"],
+          "minimum": 1
+        }
+      }
+    },
+    "readMarkUnread": {
+      "description": "Client -> server: treat this message and everything after it as unread. The one write that moves the pointer backwards; mention counts are left as they are.",
+      "type": "object",
+      "required": ["type", "channelId", "messageId"],
+      "properties": {
+        "type":      { "const": "read.mark_unread" },
+        "channelId": { "type": "integer", "minimum": 1 },
+        "messageId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "readUpdated": {
+      "description": "Server -> every session of the identity: a read changed. Sent only when something actually changed, and to the originating session too, so all devices converge on the server's answer.",
+      "type": "object",
+      "required": ["type", "channelId", "lastReadMessageId", "unreadCount", "mentionCount"],
+      "properties": {
+        "type":              { "const": "read.updated" },
+        "channelId":         { "type": "integer", "minimum": 1 },
+        "lastReadMessageId": { "type": "integer", "minimum": 0 },
+        "unreadCount":       { "type": "integer", "minimum": 0, "maximum": 100 },
+        "mentionCount":      { "type": "integer", "minimum": 0 }
       }
     }
   }

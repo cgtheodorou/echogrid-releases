@@ -17,7 +17,12 @@
       "properties": {
         "type":          { "const": "hello" },
         "clientVersion": { "type": "string" },
-        "pubkey":        { "$ref": "common.json#/$defs/base64" }
+        "pubkey":        { "$ref": "common.json#/$defs/base64" },
+        "features": {
+          "description": "Behaviours this client implements that the server needs before building the welcome. \"readState\": the client acks reads; its identity's first such handshake adopts read state (baseline to the newest message, pointers cleared, once). Absent from older clients.",
+          "type": "array",
+          "items": { "type": "string" }
+        }
       }
     },
     "challenge": {
@@ -63,6 +68,18 @@
         "members": {
           "type": "array",
           "items": { "$ref": "common.json#/$defs/memberInfo" }
+        },
+        "readStates": {
+          "description": "Channels and DMs with unread messages, keyed by channel id. Always present from a server that tracks read state (possibly empty); absent from an older one.",
+          "type": ["object", "null"],
+          "additionalProperties": {
+            "type": "object",
+            "required": ["lastReadMessageId", "unreadCount"],
+            "properties": {
+              "lastReadMessageId": { "type": "integer", "minimum": 0 },
+              "unreadCount": { "type": "integer", "minimum": 1, "maximum": 100 }
+            }
+          }
         }
       }
     },
