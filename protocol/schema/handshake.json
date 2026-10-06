@@ -22,6 +22,10 @@
           "description": "Behaviours this client implements that the server needs before building the welcome. \"readState\": the client acks reads; its identity's first such handshake adopts read state (baseline to the newest message, pointers cleared, once). Absent from older clients.",
           "type": "array",
           "items": { "type": "string" }
+        },
+        "device": {
+          "description": "What kind of device this session runs on: \"desktop\" or \"mobile\" (iOS, iPad included, or Android). Absent, or anything but \"mobile\", is desktop. Peers see a phone glyph in place of the presence dot when an identity's visible state comes only from mobile sessions.",
+          "enum": ["desktop", "mobile", null]
         }
       }
     },

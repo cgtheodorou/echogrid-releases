@@ -76,8 +76,13 @@
       "properties": {
         "identityId": { "type": "integer", "minimum": 1 },
         "nickname":   { "$ref": "#/$defs/nickname" },
-        "state":      { "$ref": "#/$defs/presenceState" }
+        "state":      { "$ref": "#/$defs/presenceState" },
+        "onMobile":   { "$ref": "#/$defs/onMobile" }
       }
+    },
+    "onMobile": {
+      "description": "True when the visible state comes only from mobile sessions. Omitted when false (and absent from older servers, which clients read as false). Never true for an offline aggregate, and never on an identity's own entry for itself. Also carried on a DM participant.",
+      "type": "boolean"
     }
   }
 }
