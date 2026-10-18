@@ -1,22 +1,9 @@
-# Caddy reverse-proxy for Echo Grid + LiveKit sidecar.
-#
-# Terminates TLS on $ECHOGRID_DOMAIN and routes:
-#   * /livekit/* → livekit-server on :7880   (path stripped)
-#   * everything else → echogrid on :5162
-#
-# LiveKit's WebSocket signaling endpoint is at the root ("/rtc"), so we use
-# `handle_path` to strip the /livekit prefix before forwarding.
-# `header_up Host {host}` keeps the original Host header so LiveKit's
-# subprotocol negotiation works through the proxy.
+# Caddy reverse proxy: TLS on $ECHOGRID_DOMAIN, /livekit/* to livekit-server on
+# :7880 (prefix stripped, Host kept for its signaling), everything else to :5162.
 
-# Behind a CDN (Cloudflare's orange cloud), Caddy's direct peer is the CDN's
-# edge, not the user. Without trusting it, reverse_proxy overwrites
-# X-Forwarded-For with the edge address, and Echo Grid sees every user as a
-# handful of Cloudflare IPs: the password limiter, the GIF limiter and IP bans
-# all key on that address. Uncomment if you proxy through Cloudflare.
-# Ranges: https://www.cloudflare.com/ips-v4 and /ips-v6 (fetched 2026-10-06).
-# A request from outside these ranges is judged by its real peer, so a client
-# dialing the origin directly cannot spoof CF-Connecting-IP.
+# Behind Cloudflare, uncomment this, or Echo Grid sees every user as a CF edge
+# address (rate limits and IP bans key on it). Ranges from
+# https://www.cloudflare.com/ips-v4 and /ips-v6 (fetched 2026-10-06).
 #{
 #    servers {
 #        trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
@@ -24,18 +11,9 @@
 #    }
 #}
 
-# Site address comes from the deploy environment so this file is publishable
-# as-is. Caddy expands {$VAR} at config-load time. Set ECHOGRID_DOMAIN in the
-# Portainer stack env (or the compose .env) to your own hostname.
-#
-# If ECHOGRID_DOMAIN is unset, Caddy dies with a misleading
-#   "unrecognized global option: handle_path"
-# because an empty site address makes it parse this block as global options.
-# That error means the variable is missing, not that this file is wrong.
-#
-# Deliberately no `{$ECHOGRID_DOMAIN:something}` default: a fallback would
-# start Caddy on the wrong hostname and quietly fail to get a certificate,
-# which is harder to diagnose than refusing to start.
+# Set ECHOGRID_DOMAIN in the stack env. Unset, Caddy fails with a misleading
+# "unrecognized global option: handle_path". No default on purpose: a wrong
+# hostname fails quietly at certificate time.
 {$ECHOGRID_DOMAIN} {
     handle_path /livekit/* {
         reverse_proxy 127.0.0.1:7880 {
@@ -47,12 +25,8 @@
     }
 
     handle {
-        # Echo Grid reads the RIGHTMOST X-Forwarded-For entry. For a trusted
-        # peer Caddy would keep the incoming header and append the peer, so the
-        # rightmost entry would be the CDN edge (and the left ones are
-        # client-controlled). {client_ip} is the address Caddy resolved: the
-        # direct peer, or CF-Connecting-IP when trusted_proxies is enabled
-        # above. Sending exactly that one value is correct with or without a CDN.
+        # Echo Grid reads the RIGHTMOST X-Forwarded-For entry, and a trusted
+        # Caddy appends rather than replaces, so send only the resolved client.
         reverse_proxy 127.0.0.1:5162 {
             header_up X-Forwarded-For {client_ip}
         }
